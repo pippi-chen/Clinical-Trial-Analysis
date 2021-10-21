@@ -52,7 +52,7 @@ knitr::opts_chunk$set(engine="sas", engine.path=saspath,
 ```
 
 ```{sas}
-proc import out=lepl datafile= "D:/CT_109/HW2/data/CTleprosylong.csv" 
+proc import out=lepl datafile= "D:/CT_109/data/CTleprosylong.csv" 
 dbms=csv  replace; getnames=yes;
 run; 
 proc sgpanel data=lepl;
@@ -60,7 +60,7 @@ title "Box Plot(panelby drug group)";
 panelby time;
 vbox count / category=treat;
 run;
-proc import out=lepl datafile= "D:/CT_109/HW2/data/CTleprosylong.csv" 
+proc import out=lepl datafile= "D:/CT_109/data/CTleprosylong.csv" 
 dbms=csv  replace; getnames=yes;
 run; 
 proc sgplot data=lepl;
@@ -70,10 +70,10 @@ datalinepatterns=(1 2 3) datasymbols=( circle);
 vline time/response=count group=treat stat=mean markers; 
 run;
 
-proc import out=ostw datafile= "D:/CT_109/HW2/data/CTosteoporosis3yrWide.csv" 
+proc import out=ostw datafile= "D:/CT_109/data/CTosteoporosis3yrWide.csv" 
 dbms=csv  replace; getnames=yes;
 run; 
-proc import out=ostl datafile= "D:/CT_109/HW2/data/CTosteoporosis3yrLong.csv" 
+proc import out=ostl datafile= "D:/CT_109/data/CTosteoporosis3yrLong.csv" 
 dbms=csv  replace; getnames=yes;
 run; 
 
@@ -131,19 +131,19 @@ kable(newst, align="c")
 ```
 
 ```{r, echo =F}
-discript <- read_excel("D:/CT_109/HW2/data/center_treat.xlsx")
+discript <- read_excel("D:/CT_109/data/center_treat.xlsx")
 kable(discript) %>%
   kable_styling()
 ```
 
 ```{r, echo =F}
-discript <- read_excel("D:/CT_109/HW2/data/count.xlsx")
+discript <- read_excel("D:/CT_109/data/count.xlsx")
 kable(discript) %>%
   kable_styling()
 ```
 
 ```{r, echo =F}
-discript <- read_excel("D:/CT_109/HW2/data/estimate.xlsx")
+discript <- read_excel("D:/CT_109/data/estimate.xlsx")
 kable(discript) %>%
   kable_styling()
 ```
