@@ -1,0 +1,149 @@
+# Leprosy Clinical Trial
+```{r setup, include=FALSE}
+options(warn=-1, digits=3)
+library(SASmarkdown)
+library(readxl)
+library(kableExtra)
+library(summarytools)
+library(stats)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1, digits=3)
+#Package
+#DFSUMMARY
+library(summarytools)
+library(stats)
+#DDPLY
+library(plyr)
+#KABLE
+library(kableExtra)
+knitr::opts_chunk$set(echo=FALSE)
+options(knitr.table.format="markdown")
+```
+
+```{r}
+lepw <- read.csv("D:/CT_109/data/CTleprosyWide.csv")
+lepl <- read.csv("D:/CT_109/data/CTleprosylong.csv")
+```
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(lepw, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+```
+
+```{r echo = FALSE ,results='asis'}
+ts=ddply(lepw, .(treat), summarize,
+      baseline = paste(round(mean(baseline),2), "(", round(sd(baseline),2), ")",sep=""),
+      outcome = paste(round(mean(outcome),2), "(", round(sd(outcome),2), ")",sep=""))
+newts = data.frame(t(ts[,c('baseline', 'outcome')]))
+total = rbind(paste(round(mean(lepw$baseline),2), "(", round(sd(lepw$baseline),2), ")",sep=""), paste(round(mean(lepw$outcome),2), "(", round(sd(lepw$outcome),2), ")",sep=""))
+newts = cbind(newts,total)
+colnames(newts) = c("Rifampin","Dapsone","Placebo","Total")
+kable(newts, align="c")
+```
+
+```{r}
+saspath <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -linesize 75"
+knitr::opts_chunk$set(engine="sas", engine.path=saspath, 
+        engine.opts=sasopts, comment=NA, include = F)
+```
+
+```{sas}
+proc import out=lepl datafile= "D:/CT_109/HW2/data/CTleprosylong.csv" 
+dbms=csv  replace; getnames=yes;
+run; 
+proc sgpanel data=lepl;
+title "Box Plot(panelby drug group)";
+panelby time;
+vbox count / category=treat;
+run;
+proc import out=lepl datafile= "D:/CT_109/HW2/data/CTleprosylong.csv" 
+dbms=csv  replace; getnames=yes;
+run; 
+proc sgplot data=lepl;
+title "Time Plot(by treat group)";
+styleattrs datacontrastcolors=(blue red green) 
+datalinepatterns=(1 2 3) datasymbols=( circle);
+vline time/response=count group=treat stat=mean markers; 
+run;
+
+proc import out=ostw datafile= "D:/CT_109/HW2/data/CTosteoporosis3yrWide.csv" 
+dbms=csv  replace; getnames=yes;
+run; 
+proc import out=ostl datafile= "D:/CT_109/HW2/data/CTosteoporosis3yrLong.csv" 
+dbms=csv  replace; getnames=yes;
+run; 
+
+proc sgplot data=ostl;
+title "Time Plot(by treat group)";
+styleattrs datacontrastcolors=(blue red) 
+datalinepatterns=(1 2) datasymbols=(circle);
+vline year/response=count group=treat stat=mean markers; 
+run;
+
+proc sgpanel data=ostl;
+title "Time Plot(panelby center group)";
+panelby treat;
+vline year / response=count group=center stat=mean;
+run;
+```
+
+```{r, engine='R'}
+knitr::opts_chunk$set(engine="R",  engine.path=NULL, 
+        engine.opts=NULL, comment=NA, include = T)
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW2/data/ttest.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+# Osteoporosis Clinical Trial
+
+```{r}
+ostl <- read.csv("D:/CT_109/data/CTosteoporosis3yrLong.csv")
+ostw <- read.csv("D:/CT_109/data/CTosteoporosis3yrWide.csv")
+```
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ostw, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+```
+
+```{r, echo =F}
+st=ddply(ostw, .(treat), summarize,
+         age = paste(round(mean(age),2), "(", round(sd(age),2), ")",sep=""),
+         year1 = paste(round(mean(as.numeric(year1)),2), "(", round(sd(as.numeric(year1)),2), ")",sep=""),
+         year2 = paste(round(mean(as.numeric(year2)),2), "(", round(sd(as.numeric(year2)),2), ")",sep=""),
+         year3 = paste(round(mean(as.numeric(year3)),2), "(", round(sd(as.numeric(year3)),2), ")",sep="")
+         )
+newst = data.frame(t(st[,c('age', 'year1', 'year2', 'year3')]))
+edatable=function(var){
+  paste(round(mean(var),2), "(", round(sd(var),2), ")",sep="")
+}
+total = rbind(edatable(ostw$age),edatable(ostw$year1),edatable(ostw$year2),edatable(ostw$year3))
+newst = cbind(newst,total)
+colnames(newst) = c("Placebo","Treatment","Total")
+kable(newst, align="c")
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW2/data/center_treat.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW2/data/count.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW2/data/estimate.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
