@@ -1,0 +1,5 @@
+Dependent,Source,DF,SS,MS,FValue,ProbF
+outcome,A,1,726,726,7.1,0.0145
+outcome,B,1,1568.17,1568.17,15.33,0.0008
+outcome,誤差,21,2148.33,102.3,_,_
+outcome,已校正的總計,23,4442.5,.,_,_

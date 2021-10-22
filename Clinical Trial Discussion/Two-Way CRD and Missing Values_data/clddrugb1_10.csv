@@ -1,0 +1,7 @@
+Effect,Dependent,Method,Comparison,LowerCL,Difference,UpperCL,Significance
+drug,mood,Bon,A - B,-7.477,2.000,11.477,0
+drug,mood,Bon,A - P,2.023,11.500,20.977,1
+drug,mood,Bon,B - A,-11.477,-2.000,7.477,0
+drug,mood,Bon,B - P,0.023,9.500,18.977,1
+drug,mood,Bon,P - A,-20.977,-11.500,-2.023,1
+drug,mood,Bon,P - B,-18.977,-9.500,-0.023,1

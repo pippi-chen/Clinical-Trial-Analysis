@@ -1,0 +1,5 @@
+Dependent,Source,DF,SS,MS,FValue,ProbF
+mood,drug,2,453,226.5,29.64,<.0001
+mood,psychotherapy,1,450,450,58.88,<.0001
+mood,誤差,14,107,7.64,_,_
+mood,已校正的總計,17,1010,.,_,_

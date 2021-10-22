@@ -1,0 +1,6 @@
+variable,class,effect,UpperCLeffect,LowerCLeffect
+drug,A,4.5,40.93,8.07
+drug,B,2.5,31.5,13.5
+drug,P,-7,21.77,4.23
+psychotherapy,no,-5,24.9,5.1
+psychotherapy,yes,5,38.07,11.93

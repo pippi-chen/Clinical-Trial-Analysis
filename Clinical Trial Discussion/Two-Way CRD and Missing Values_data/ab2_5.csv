@@ -1,0 +1,5 @@
+Variable,Class,Mean,LowerCLMean,UpperCLMean,StdDev
+outcome,A,21.1700,8.0200,34.3100,12.5300
+outcome,AB,35.3300,24.8900,45.7800,9.9500
+outcome,B,26.3300,14.9600,37.7100,10.8400
+outcome,P,8.1700,0.6500,15.6900,7.1700

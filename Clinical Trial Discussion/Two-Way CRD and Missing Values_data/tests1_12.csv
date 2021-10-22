@@ -1,0 +1,4 @@
+Effect,NumDF,DenDF,FValue,ProbF
+drug,2,12,54.36,<.0001
+psychotherapy,1,12,108.00,<.0001
+drug*psychotherapy,2,12,6.84,0.0104

@@ -1,0 +1,13 @@
+Effect,Dependent,Method,Comparison,LowerCL,Difference,UpperCL,Significance
+treat,outcome,Bon,AB - B,-8.417,9.000,26.417,0
+treat,outcome,Bon,AB - A,-3.250,14.167,31.584,0
+treat,outcome,Bon,AB - P,9.750,27.167,44.584,1
+treat,outcome,Bon,B  - AB,-26.417,-9.000,8.417,0
+treat,outcome,Bon,B  - A,-12.250,5.167,22.584,0
+treat,outcome,Bon,B  - P,0.750,18.167,35.584,1
+treat,outcome,Bon,A  - AB,-31.584,-14.167,3.250,0
+treat,outcome,Bon,A  - B,-22.584,-5.167,12.250,0
+treat,outcome,Bon,A  - P,-4.417,13.000,30.417,0
+treat,outcome,Bon,P  - AB,-44.584,-27.167,-9.750,1
+treat,outcome,Bon,P  - B,-35.584,-18.167,-0.750,1
+treat,outcome,Bon,P  - A,-30.417,-13.000,4.417,0
