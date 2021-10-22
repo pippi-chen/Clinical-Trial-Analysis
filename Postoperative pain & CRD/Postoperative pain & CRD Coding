@@ -1,0 +1,363 @@
+# Postoperative pain 
+
+```{r setup, include=FALSE}
+options(warn=-1, digits=3)
+library(SASmarkdown)
+library(readxl)
+library(kableExtra)
+library(summarytools)
+library(stats)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1, digits=3)
+#Package
+#DFSUMMARY
+library(summarytools)
+library(stats)
+#DDPLY
+library(plyr)
+#KABLE
+library(kableExtra)
+knitr::opts_chunk$set(echo=FALSE)
+options(knitr.table.format="markdown")
+```
+
+```{r}
+ctpw <- read.csv("D:/CT_109/data/CTpainrescueWide.csv")
+ctpl <- read.csv("D:/CT_109/data/CTpainrescueLong.csv")
+ctb <- read.csv("D:/CT_109/data/CTSchizoDosingFindingCRDBalance.csv")
+```
+
+```{r,warning=FALSE,message=FALSE}
+ctpl <- na.omit(ctpl)
+
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr) 
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  datac$se <- datac$sd / sqrt(datac$N)  
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  return(datac)
+}
+
+ctpl$treat <- as.factor(ctpl$treat)
+ctpl$outcome <- as.numeric(ctpl$outcome)
+
+summary <- summarySE(ctpl, measurevar="outcome", groupvars=c("treat","time"), na.rm=TRUE)
+pd <- position_dodge(0.6)
+
+plot <- ggplot(summary, aes(x=time, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.5, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time(hour)") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.95))             
+plot + ylim(0, 4)
+```
+
+```{r,warning=FALSE,message=FALSE}
+ctpl2 <- read.csv("D:/CT_109/HW4/data/CTpainrescueLong2.csv")
+ctpl2 <- na.omit(ctpl2)
+ctpl2$treat <- as.factor(ctpl$treat)
+ctpl2$outcome <- as.numeric(ctpl$outcome)
+
+summary <- summarySE(ctpl2, measurevar="outcome", groupvars=c("treat","interval"), na.rm=TRUE)
+pd <- position_dodge(0.1)
+
+plot <- ggplot(summary, aes(x=interval, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.1, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time(hour)") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.95))             
+plot + ylim(1, 3)
+```
+
+```{r}
+saspath <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -linesize 75"
+knitr::opts_chunk$set(engine="sas", engine.path=saspath, 
+        engine.opts=sasopts, comment=NA, include = T)
+```
+
+```{sas ex-sas }
+libname path "D:/CT_109/HW4/data";
+proc import datafile="D:/CT_109/HW4/data/CTpainrescueWide.csv"
+out=ctpw
+dbms=csv  replace; getnames=yes;
+run; 
+proc import datafile="D:/CT_109/HW4/data/CTpainrescueLong.csv"
+out=ctpl
+dbms=csv  replace; getnames=yes;
+run; 
+data ctpwn;
+set ctpw;
+interval1=round(mean(of y1-y3),0.01);
+interval2=round(mean(of y4-y6),0.01);
+interval3=round(mean(of y7-y12),0.01);
+interval4=round(mean(of y13-y24),0.01);
+run;
+data intr;
+set ctpwn;
+array inter interval1-interval4;
+count=0;
+do interval=1,2,3,4;
+ count=count+1;  /* 設定陣列指標 */
+ outcome=inter{count};
+ output; /* 強迫輸出新觀察值 */
+end;
+keep id treat interval outcome;
+run;
+
+proc sgpanel data=intr;
+panelby treat/ novarname sparse columns = 3 rows = 1;
+vbox outcome / category=interval;
+run;
+data ctpwn;
+set ctpw;
+interval1=round(mean(of y1-y3),0.01);
+interval2=round(mean(of y4-y6),0.01);
+interval3=round(mean(of y7-y12),0.01);
+interval4=round(mean(of y13-y24),0.01);
+change=y24-y1;
+run;
+data intr;
+set ctpwn;
+array inter interval1-interval4;
+count=0;
+do interval=1,2,3,4;
+ count=count+1;  /* 設定陣列指標 */
+ outcome=inter{count};
+ output; /* 強迫輸出新觀察值 */
+end;
+keep id treat interval outcome;
+run;
+
+proc sgpanel data=intr;
+panelby interval;
+histogram outcome;
+run;
+
+proc import datafile="D:\CT_109\HW4\data\CTSchizoDosingFindingCRDBalance.csv"
+out=ctb
+dbms=csv  replace; getnames=yes;
+run; 
+data ctb;
+set ctb;
+change=outcome-baseline;
+run;
+data ctbn;
+set ctb;
+array month baseline outcome change;
+count=0;
+do time=1 to 3;
+    count=count+1;/*設定陣列指標*/
+    y=month{count};
+    output;/*強迫輸出新觀察值*/
+end;
+run;
+data ctbn1;
+set ctbn;
+format status $8.;
+if time=1 then status="baseline";
+else if time=2 then status="outcome";
+else if time=3 then status="change";
+keep id dose gender time  status y;
+run;
+proc format ;
+value dosef
+0="Placebo"
+40="High dose"
+80="Medium dose"
+120="High dose"
+200="Total";
+run;
+
+proc sgpanel data=ctbn1;
+where status^="change";
+panelby dose/ novarname sparse columns = 4 rows = 1;
+vbox y / category=status;
+format dose dosef.;
+run;
+
+proc sgpanel data=ctbn1;
+where status="change";
+label y="change";
+panelby dose/ novarname sparse columns =4 rows = 1;
+vbox y / category=gender;
+format dose dosef.;
+run;
+
+proc sgplot data=path.rsplotc;
+title 'Residuals by Predicted for change';
+scatter y=Residual x=Predicted;
+run;
+
+proc sgplot data=path.rsploto;
+title 'Residuals by Predicted for outcome';
+scatter y=Residual x=Predicted;
+run;
+```
+
+```{r, engine='R'}
+knitr::opts_chunk$set(engine="R",  engine.path=NULL, 
+        engine.opts=NULL, comment=NA, include = T)
+```
+
+```{r,warning=FALSE,message=FALSE}
+ctpl3<-ctpl[(ctpl$time==1 | ctpl$time==24),]
+
+summary <- summarySE(ctpl3, measurevar="outcome", groupvars=c("treat","time"), na.rm=TRUE)
+pd <- position_dodge(0.6)
+plot <- ggplot(summary, aes(x=time, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.5, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time(hour)") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.95))
+plot + ylim(1, 4)
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/manova.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/manova_log.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/manova_interval.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/manova_loginterval.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+# CRD
+
+```{r, echo =F,message=FALSE}
+cts <- read.csv("D:/CT_109/HW4/data/CTSchizoDosingFindingCRDBalanceLong.csv")
+
+cts <- na.omit(cts)
+
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr) 
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  datac$se <- datac$sd / sqrt(datac$N)  
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  return(datac)
+}
+
+cts$dose <- as.factor(cts$dose)
+cts$y <- as.numeric(cts$y)
+
+summary <- summarySE(cts, measurevar="y", groupvars=c("dose","time"), na.rm=TRUE)
+pd <- position_dodge(0.1)
+
+plot <- ggplot(summary, aes(x=time, y=mean, colour=dose, group=dose)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.1, position=pd) +
+  geom_line(position=pd, aes(linetype=dose)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time") +
+  ylab("PANSS") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.45))             
+plot + ylim(80, 110)
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/anova.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/schef.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/bonfer.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/change.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/data/outcome.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+# Appendix
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctpw, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+```
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctb, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+```
