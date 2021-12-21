@@ -1,0 +1,461 @@
+---
+title: "Data Analysis & Statistical Design in Clinical Trials"
+author: "Shu-Ping Chen"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: true 
+    theme: united
+    highlight: tango
+---
+
+
+```{r setup, include=FALSE}
+options(warn=-1, digits=3)
+library(SASmarkdown)
+library(readxl)
+library(kableExtra)
+library(summarytools)
+library(stats)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1, digits=3)
+#Package
+#DFSUMMARY
+library(summarytools)
+library(stats)
+#DDPLY
+library(plyr)
+#KABLE
+library(kableExtra)
+knitr::opts_chunk$set(echo=FALSE)
+options(knitr.table.format="markdown")
+
+
+library(captioner)
+tableNums <- captioner(prefix = "Table")
+#1
+tableNums(name = "mis", caption = "Summary of the patients’ condition")
+tableNums(name = "group", caption = "Summary of mean age and RA value")
+tableNums(name = "chiq", caption = "Testing of RA value")
+tableNums(name = "wald", caption = "Estimator of parameter")
+#2
+tableNums(name = "mis2", caption = "Summary of the patients’ condition")
+tableNums(name = "table8", caption = "Summary of TWSTRS")
+tableNums(name = "MANOVA", caption = "MANOVA")
+
+
+##Apendix
+tableNums_b<- captioner(prefix = "Appendix")
+tableNums_b(name = "var", caption = "Information of data in Rheumatoid arthritis Clinical Trial")
+tableNums_b(name = "var2", caption = "Information of data in Cervical dystonia Clinical Trial")
+tableNums_b(name = "wald", caption = "Summary of estimate")
+```
+
+
+# Descriptive Statistics in Clinical Trials
+## A.  Rheumatoid arthritis Clinical Trial
+  A longitudinal clinical trial compared auranofin therapy (3 mg of oral gold, twice daily) and Placebo for the treatment of rheumatoid arthritis. In this six-month, randomized, double-blind trial, 303 patients with classic or definite rheumatoid arthritis were randomized to one of the two treatment groups and followed over time. The outcome variable of interest is a global impression scale (Arthritis Categorical Scale) measured at baseline (month 0), month 2, month 4, and month 6. This is a self-assessment of a patient’s current arthritis, measured on a five-level ordinal scale: (1) very good, (2) good, (3) fair, (4) poor, and (5) very poor. Baseline data on this outcome variable are available for 303 of the patients who participated in this trial; follow-up data at 6 months are available for 294 patients. Data are in files CTRA6mWide.csv and CTRA6mLong.csv.
+
+
+### Introduction
+
+  This study is a six-month, randomized, double-blind trial, in which 303 subjects are general patients or patients with confirmed rheumatoid arthritis. They will be randomly assigned to a group taking Auranofin or Placebo, and recorded regularly. The patients’ self-assessment scale will reflect the patients’ current arthritis status. It can be seen from Table 1 that the data of this study includes patient’s number, age, treatment group, RA value before treatment, and RA value at 0, 2, 4, and 6 months after treatment. Both the RA value and age at 6 months are missing values. The distribution of age is a left-skewed distribution, which means that most of patients are old. The distribution of RA values at 0, 2, 4, and 6 months after treatment is approximately normal. This study intends to use the above data for statistical analysis, assuming that patients are all rheumatoid arthritis patients, and to observe the efficacy of Auranofin and Placebo in the treatment of rheumatoid arthritis.
+
+```{r}
+ctrwo <- read.csv("D:/CT_109/HW3/data/CTRA6mWide_origin.csv")
+ctrlo <- read.csv("D:/CT_109/HW3/data/CTRA6mLong_origin.csv")
+ctrw <- read.csv("D:/CT_109/HW3/data/CTRA6mWide.csv")
+ctrl <- read.csv("D:/CT_109/HW3/data/CTRA6mLong.csv")
+```
+
+
+  Through Table 1, we can know that in the 303 patients, there are 290 people stay the whole trial, 9 people drop out the trial in advance, and 4 people drop out then come back.
+  
+`r tableNums(name = "mis",  display = "full")`
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW3/data/mis.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+### Exploratory Data Analysis
+
+  It can be seen from the table below that the average age of the two groups is about 50 years old, and the average RA value at baseline is about 3 points. As the two groups changed over time, the RA value showed a slight downward trend. The group taking Auranofin had a smaller downward trend, with an average decrease of only 0.34 points; on the contrary, the group taking Placebo had a lower degree of decline than the group taking Auranofin Don't be bigger, it drops 0.66 points on average. Therefore, there is no obvious downward trend in the RA value of the two groups.
+  
+`r tableNums(name = "group",  display = "full")`
+
+```{r,warning=FALSE}
+change = as.numeric(ctrw$y6)-ctrw$y0
+ctrw_1=cbind(ctrw,change)
+ctrw_p = ctrw_1[which(ctrw_1$treat==0),]
+ctrw_a = ctrw_1[which(ctrw_1$treat==1),]
+
+msci = function(ds, n, mst, cit){
+  mct=NULL
+  for(i in n){
+    m = round(mean(as.numeric(ds[,i]), na.rm=TRUE),2)
+    s = round(sd(as.numeric(ds[,i]), na.rm=TRUE),2)
+    ci = paste("[",m-2*s,", ",m+2*s,"]",sep="")
+    ms = paste(m,"(",s,")",sep="")
+    mc = cbind(ms,ci)
+    rownames(mc)=names(ds)[i]
+    mct = rbind(mct,mc)
+  }
+#rownames(mct)=varn
+  colnames(mct)=c(mst,cit)
+  mct
+}
+n=c(3:8)
+p = msci(ctrw_p,n,"Placebo","95% C.I.")
+a = msci(ctrw_a,n,"Auranofin","95% C.I.")
+t = msci(ctrw_1,n,"Total","95% C.I.")
+smtable = as.data.frame(cbind(p,a,t))
+knitr::kable(smtable)
+```
+
+  It can be seen from Figure 1 that for the average RA value of the entire group, the average RA value of the Auranofin group (treat=1) and the Placebo group (treat=0) at baseline have little difference. However, in the subsequent 2, 4, and 6 months, it can be found that the average RA values of the two groups have a downward trend, but the Auranofin group has a larger decline.
+
+```{r,message=FALSE}
+ctrl <- na.omit(ctrl)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr) 
+length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  datac$se <- datac$sd / sqrt(datac$N)  
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  return(datac)
+}
+
+ctrl <- data.frame(ctrl)
+ctrl$treat <- as.factor(ctrl$treat)
+ctrl$outcome <- as.numeric(ctrl$outcome)
+summary <- summarySE(ctrl, measurevar="outcome", groupvars=c("treat","time"), na.rm=TRUE)
+pd <- position_dodge(0.2)
+
+time_plot <- ggplot(summary, aes(x=time, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=.1, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.9))             
+time_plot + ylim(2, 3.5)
+
+```
+
+Figure 1: Change of RA value from before to after treatment
+
+
+```{r}
+saspath <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -linesize 75"
+knitr::opts_chunk$set(engine="sas", engine.path=saspath, 
+        engine.opts=sasopts, comment=NA, include = F)
+```
+
+
+```{sas ,message=FALSE}
+proc import out=ctrl datafile= "D:\CT_109\HW3\data\CTRA6mLong.csv" 
+dbms=csv  replace; getnames=yes;
+run; 
+
+proc print;run;
+proc sgpanel data=ctrl;
+title "Box Plot(panelby drug group)";
+panelby treat;
+vbox outcome / category=time;
+run;
+
+data ctrl1;
+set ctrl;
+if treat=1 then time=time+0.5;
+run;
+
+proc sgplot data=ctrl1;
+title "Time Plot(by treat group)";
+styleattrs datacontrastcolors=(blue red) 
+datalinepatterns=(1 3) datasymbols=(circle);
+vline time / response=outcome  group=treat STAT=MEAN LIMITSTAT=STDDEV  
+                          markers dataskin=pressed datalabelpos=data ;
+xaxis label="月份" VALUES=(-1 TO 7.5 BY 0.5);
+		 run;
+                          
+
+                                                  
+proc import out=ctl datafile= "D:\CT_109\HW3\data\CTcdystoniaLong.csv" 
+dbms=csv  replace; getnames=yes;
+run; 
+proc sgpanel data=ctl;
+title "Box Plot(panelby treat group)";
+panelby treat/ novarname sparse columns = 3 rows = 1; /*三欄兩列*/;
+vbox twstrs / group =treat category=week;
+run;             
+proc sgpanel data=ctl;
+title "Box Plot(panelby treat group)";
+panelby treat/ novarname sparse columns = 3 rows = 1; /*三欄兩列*/;
+vbox twstrs / group =treat category=site;
+run;
+
+```
+
+
+  From Figure 2, we can see that there is not much difference in the overall RA value distribution between the Auranofin group (treat=1) and the Placebo group (treat=0) at baseline. However, in the follow-up after 2, 4, and 6 months, it can be found that the RA value of the Placebo group is widely distributed, covering RA value similar to or lower than the baseline. Therefore, although there is little difference in the overall RA value between the two groups during the follow-up period, the RA value of some patients in the Placebo group is still high, while the RA value of the Auranofin group has a trend of overall decrease.
+ 
+![](sgpanel.png)
+Figure 2:RA value from before to after treatment boxplot
+
+
+### Method
+
+#### chisq-test
+  In order to observe whether there is a difference in the RA value between the Auranofin group (treat=1) and the Placebo group (treat=0) at different times, the RA value is regarded as a categorical variable. Hence, Chi-square test is used as the basis for the judgment, and the addition is added one variable, change, which means the difference between the RA value at the sixth month and the baseline to detect whether there is a difference before and after treatment in the same treatment group. In the following tests, we set significance level to 0.05.
+
+```{r, engine='R'}
+knitr::opts_chunk$set(engine="R",  engine.path=NULL, 
+        engine.opts=NULL, comment=NA, include = T)
+```
+
+Hypothesis Testing:
+
+$$
+\begin{cases} H_0:{They \text{ } are \text{ } independent}
+\\
+\\H_1:{They \text{ } are \text{ } dependent}\end{cases}
+$$
+  Observing the table below, we can see that there is no significant difference in the RA value between the Auranofin group (treat=1) and the placebo group (treat=0) before the treatment and the fourth month However, the RA values at the second and sixth months and before and after the treatment are significantly different.
+
+`r tableNums(name = "chiq",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW3/data/chiq.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+* Constraints
+  + (1) As the number of samples is larger (the larger n is), it is easier to be significant.
+  + (2) This check can only know whether there is a difference, but it is impossible to know which group is larger or smaller.
+
+
+#### wald-test
+  This study uses a fixed-effect model for Wald test. The model assumes that the Poisson distribution is used, and the link function is an exponent. The patients’ number, treatment group, and measurement time are set as categorical variables, and age is considered as a continuous variable. In the following tests. We set significance level to 0.05. As can be seen from the table below, there is a significant difference in RA value in time and treatment group, but there is no significant difference in age. By observing the estimated value, it can be seen that the RA value will decrease as time increases, while the treatment group is taking. The RA value of the Auranofin group is lower than that of the Placebo group, so it can be inferred that taking Auranofin has an effect on rheumatoid arthritis.
+
+`r tableNums(name = "wald",  display = "full")`
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW3/data/estimate.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+### Conclusion
+
+  First of all, it can be known from the Chi-square test that there is a significant difference in RA value between the group taking Auranofin and the group taking Placebo. Secondly, it can be learned from the Wald test that the RA value of the patients taking the Auranofin is lower than that of the group taking the Placebo. Therefore, it can be known from the statistical analysis method of this study that taking Auranofin can effectively treat rheumatoid arthritis.
+
+
+## B. 肌張力不全症臨床試驗
+  In a randomized, multicenter, double‐blind, placebo‐controlled trial of botulinum toxin type B (BotB) in patients with cervical dystonia, eligible subjects from nine U.S. sites were randomized to one of three groups: placebo (36 subjects), 5000 units of BotB (36 subjects), or 10,000 units of BotB (37 subjects). The primary outcome variable was the total score on the TorontoWestern Spasmodic Torticollis Rating Scale (TWSTRS‐Total). The TWSTRS‐Total, which measures severity, pain, and disability of cervical dystonia, is a numerical score ranging from 0 to 87; high scores indicate impairment. The TWSTRS‐Total was administered at
+baseline (week 0) and at weeks 2, 4, 8, 12, and 16 following treatment. Data are in files CTcdystoniaWide.csv and CTcdystoniaLong.csv
+
+
+
+### Question
+
+* 1. 翻譯
+  +  在一項試驗中針對來自美國9個地點之罹患肌張力不全症的合格患者的B型肉毒桿菌毒素(BotB)，進行隨機分配、多中心、雙盲且服用安慰劑之對照試驗，患者被隨機分配到三個組別的其中一個:安慰劑組(36名患者)、5000單位的BotB組(36名患者)、10000單位的BotB組(37名患者)。主要的結果變量為西多倫多痙攣性斜頸評分量表的總分(TWSTRS‐Total)。西多倫多痙攣性斜頸評分量表的總分為測量肌張力不全症的嚴重程度、疼痛和殘疾的數字評分，範圍從0至87，分數越高表示損害。西多倫多痙攣性斜頸評分量表的總分在基線(第0週)，以及治療後的第2、4、8、12、16週後執行。資料於文件CTcdystoniaWide.csv和CTcdystoniaLong.csv中。
+
+```{r}
+ctw <- read.csv("D:/CT_109/HW3/data/CTcdystoniaWide.csv")
+ctl <- read.csv("D:/CT_109/HW3/data/CTcdystoniaLong.csv")
+```
+
+### Introduction
+
+  A randomized, multi-center, double-blind, placebo-controlled trial of botulinum toxin type B (BotB) from eligible patients suffering from dystonia from 9 locations in the United States was carried out, and the patients were randomly assigned to a placebo Group, 5000-unit BotB group or 10000-unit BotB group. The
+total score of the Western Toronto Spasmodic Torticollis Scale (TWSTRS-Total) was used to present the assessment results. This is a numeric score that measures the severity, pain, and disability of dystonia, ranging from 0 to 87, with higher scores indicating damage. This assessment is performed at baseline (week 0), and after 2, 4, 8, 12, and 16 weeks after treatment. From Table 2 in the appendix, it can be seen
+that the data of this study includes the trial center code, subject number, treatment group, subject age, gender, and the total score of TWSTRS measured at weeks 0, 2, 4, 8, 12, and 16, The three treatment groups are evenly distributed, the age distribution is about normal, and the gender is more female. The total scores of TWSTRS at different times are about normal distribution, of which the 2, 4, 8, 12, and 16 weeks have missing values.
+
+
+### Exploratory Data Analysis
+  Through the below table, we can know that in 109 patients, there are 94 people finish the whole trial, 4 people drop out in advance, and 11 people drop out and come back.
+
+`r tableNums(name = "mis2",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW3/data/mis2.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+  It can be seen from the table below that the average age of the different treatment groups is about 55 years old. In addition, for the placebo treatment group, the average total TWSTRS score at week 0 was lower than that of the two groups with medication, and the average total TWSTRS score decreased most significantly from week 0 to week 2, with a decrease of approximately 3.61 points. But when the time has increased, its total score has gradually risen. The average TWSTRS total score in the week 16 is about 43 points, so the change in the 16th week only dropped by 0.59 points. In the BotB group taking 5000 units, the decline was most dramatic from week 0 to week 2, with a score of 9.39. But when the time increased, its total score gradually increased. The average total score of TWSRS at week 16 was about 45 Points, so the change in 16 weeks is a drop of 1.11 points. The BotB group taking 10,000 units also decreased most significantly from week 0 to week 2, and the score dropped as much as nearly 11 points. It still had a downward trend in week 4, but starting from week 8, the total score gradually increased. By the 16th week, its total TWSTRS score was as high as 49 points, which has exceeded the baseline score, so the amount of change in the 16th week was an increase of 1.61 points. Therefore, if only a placebo is taken, the total score of TWSTRS has almost no trend of decline; if you take 5000 units of BotB, the total score of TWSTRS in the three treatment groups has the most significant decline; if you take a higher dose of 10,000 units of BotB, Instead, it will increase the total score of TWSTRS.
+
+`r tableNums(name = "table8",  display = "full")`
+
+```{r}
+change = ctw$twstrs16-ctw$twstrs0
+ctw_1=cbind(ctw,change)
+ctw_5 = ctw_1[which(ctw_1$treat=="5000U"),]
+ctw_10 = ctw_1[which(ctw_1$treat=="10000U"),]
+ctw_p = ctw_1[which(ctw_1$treat=="Placebo"),]
+n=c(4,6:12)
+p = msci(ctw_p,n,"Placebo","95% C.I.")
+U5 = msci(ctw_5,n,"5000U","95% C.I.")
+U10 = msci(ctw_10,n,"10000U","95% C.I.")
+t = msci(ctw_1,n,"Total","95% C.I.")
+smtable = as.data.frame(cbind(p,U5,U10,t))
+knitr::kable(smtable)
+```
+
+  It can be seen from Figure 3 that at baseline, the average TWSTRS score of the placebo is the lowest among the three. From the overall situation, the total score of TWSTRS in the three treatment groups decreased from week 0 to week 2, and the total score of TWSTRS rose again from week 4 to week 16. Among them, the placebo group has relatively stable changes, while the BotB group taking 10,000 units has the most turbulence. From the next table, we can more clearly see the changes in the total scores of the TWSTRS in the 0th and 16th weeks of the three groups.
+
+
+```{r}
+ctl <- na.omit(ctl)
+
+ctl <- data.frame(ctl)
+ctl$treat <- as.factor(ctl$treat)
+ctl$twstrs <- as.numeric(ctl$twstrs)
+
+summary <- summarySE(ctl, measurevar="twstrs", groupvars=c("treat","week"), na.rm=TRUE)
+pd <- position_dodge(0.6)
+
+ggplot(summary, aes(x=week, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.5, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("week") +
+  ylab("twstrs") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.35))
+```
+
+
+Figure 3: Change of TWSTRS score in different time
+
+
+  Observing Figure 4, we can see that the total score of the placebo group at baseline is smaller than that of the 5000-unit BotB group and the 10,000-unit BotB group. The baseline distribution of the 5000-unit BotB group and the 10,000-unit BotB group are not much different. Observing the scores for the following 2, 4, 8, 12, and 16 weeks, we can see that the 5000-unit BotB group and the 10,000-unit BotB group both have a downward trend in 2, 4 weeks, and an upward trend in 12 and 16 weeks. The decline in Placebo group is smaller than the other two, and there is no obvious trend overall.
+
+
+![](sgpanel1.png)
+
+Figure 4:TWSTRS Total score in weeks boxplot
+
+  It can be seen from Figure 5 that the total score of TWSTRS in the placebo group is the lowest among the three groups, but the changes are relatively stable and there is no downward trend. Conversely, the group with a significant decrease is the BotB group taking 5000 units and the group taking 10,000 units The total score of TWSTRS in the BotB group has an upward trend.
+
+
+```{r,message=FALSE}
+ctl2<-ctl[(ctl$week==0 | ctl$week==16),]
+
+summary <- summarySE(ctl2, measurevar="twstrs", groupvars=c("treat","week"), na.rm=TRUE)
+pd <- position_dodge(0.6)
+plot <- ggplot(summary, aes(x=week, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.5, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("week") +
+  ylab("twstrs") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.97),
+        legend.key.size = unit(0.5, "cm"),
+        legend.key.height=unit(0.3,"cm"),
+        legend.key.width=unit(1,"cm"))
+plot + ylim(40, 55)
+
+```
+
+Figure 5: Difference of TWSTRS total score from before to after treatment
+
+  It can be seen from Figure 6 that the average total TWSTRS scores of different test centers from week 0 to week 16 are different.
+
+![](sgpanel2.png)
+
+圖6：不同試驗中心之TWSTRS總分盒形圖
+
+### Method
+
+#### MANOVA
+
+$$
+\begin{cases} H_0:{兩變項是獨立的}
+\\
+\\H_1:{兩變項並非獨立}\end{cases}
+$$
+k= the number of groups of age, treat, site, sex, site * treat, site * sex, treat * sex
+
+  We can observe whether the average values of different variables are significantly different through the MANOVA test. Among them, the total scores of TWSTRS from week 0 to week 16 of the response variable are the treatment group, gender, trial center, year type, and treatment group and trial. Interaction items between center and gender. As can be seen from the table below, there is no significant difference in the mean of all explanatory variables.
+
+`r tableNums(name = "MANOVA",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW3/data/MANOVA.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+#### Wald test
+
+  According to the Wald test (Appendix Table 3), there are significant differences in the number of weeks, drug group, test center, and gender in the variables, and there is no significant difference in age. Furthermore, we observe the interaction items between the two variables, and take the test center 9, placebo group, male, and week 0 as the benchmark. Under the interaction between the test center and the drug group, in general, he total scores of TWSTRS in different test centers in the 10000U group and 5000U group were higher than those of the placebo group. Under the interaction between the test center and gender, in general, the total TWSTRS scores of men and women in different test centers are mostly higher in men than in women. Under the interaction between the drug group and age, the total score of TWSTRS in the treatment group is 10000U, the female’s score is higher than the male’s; and the treatment group is 5000U, the male’s score is higher than the female’s. Under the interaction between the test center and the number of weeks, in general, the total score of the TWSTRS of the different test centers declined slightly in the second week, and increased with time, and there was a trend of picking up. Under the interaction of the pharmacy group and the number of weeks, the total score of TWSTRS in the group taking different units of BotB slowed down from week 0 to week 12, and it increased in week 16. Among them, the group taking BotB of 10000U The total score is the highest. Under the interaction between the number of weeks and gender, women's total TWSTRS scores are lower than those of men under different weeks.
+
+* Constraints
+  + (1) The presented report is too long to be easy to observe.
+  + (2) When the absolute value of the regression coefficient is large, the standard error of the coefficient estimate will expand, which will cause the wald statistic value to become very small, so that the probability of type 2 errors increases.
+### Conclusion
+
+  
+It can be inferred from the above statistical method that the total score of TWSTRS in the first few weeks before taking the drug has a downward trend, but as time increases, the total score has a trend of recovery, and the recovery of the treatment group taking 10000U is the most significant, taking comfort There is no significant change in the treatment group of the drug, so the treatment group taking 5000 U is the drug with the best therapeutic effect among the three.
+
+
+## Appendix
+`r tableNums_b(name = "var",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctrwo, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+
+```
+
+`r tableNums_b(name = "var2",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctw, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+
+```
+
+`r tableNums_b(name = "estimate2",  display = "full")`
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW3/data/estimate2.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
