@@ -1,0 +1,278 @@
+---
+title: "Descriptive Statistics in Clinical Trials"
+author: "Shu-Ping Chen"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    theme: united
+    highlight: tango
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+```{r setup, include=FALSE}
+options(warn=-1, digits=3)
+library(SASmarkdown)
+library(readxl)
+library(kableExtra)
+library(summarytools)
+library(stats)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(grid)
+library(car)
+##用來拼 ggplot 2的圖(~par)
+library(gridExtra)
+##顏色色階
+library(RColorBrewer)
+library(stringr)
+library(reshape2)
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1, digits=3)
+#Package
+#DFSUMMARY
+library(summarytools)
+library(stats)
+#DDPLY
+library(plyr)
+#KABLE
+library(kableExtra)
+knitr::opts_chunk$set(echo=FALSE)
+options(knitr.table.format="markdown")
+
+
+library(captioner)
+tableNums <- captioner(prefix = "Table")
+#1
+tableNums(name = "q1_2", caption = "Mean and s.e of compression rate of different doses")
+tableNums(name = "q1_2aov", caption = "one-way ANOVA")
+tableNums(name = "q1_2lm", caption = "Summary of regression model analysis")
+tableNums(name = "q1_3", caption = "Summary of one-way ANOVA")
+tableNums(name = "q2_5", caption = "Variance analysis in two-stage nest design")
+tableNums(name = "q2_6", caption = "Summary of ANOVA model in nest design")
+
+plotNums <- captioner(prefix = "Figure")
+#1
+plotNums(name = "p1_2box", caption = "Compression rate of different doses Boxplot")
+plotNums(name = "p1_2dot", caption = "Compression rate of different doses Dot plot")
+
+
+##Appendix
+tableNums_b<- captioner(prefix = "Appendix")
+tableNums_b(name = "var", caption = "Information of data in RCBD")
+tableNums_b(name = "var2", caption = "Information of data in Multiple LSQs")
+```
+
+
+# Descriptive Statistics in Clinical Trials
+## BioMed DOE: RCBD
+  
+  The effect of the drug d-amphetamine sulfate on the behavior of rats was the object of the experiment. The behavior under study was the rate at which water-deprived rats pressed a lever to obtain water. The response was the lever press rate defined as the number of lever presses divided by the elapsed time of the session. The treatment factor levels were five different dosages of the drug in milligrams per kilogram of body weight, including a control dosage consisting of saline solution. An experiment, or run, consisted of injecting a rat with a drug dosage, and after one hour an experimental session began where a rat would receive water each time after a second lever was pressed. An individual rat could be used in many experiments by repeatedly injecting it with different doses of the drug (after an appropriate washout period) and by observing the lever pressing behavior. Each rat received all five doses in a random order with an appropriate washout period in between. Data is shown on Table 1. Data is in file DOERCBDRatBehavior.csv.
+
+```{r}
+drb<- read.csv("D:/CT_109/HW6/data/DOERCBDRatBehavior.csv")
+```
+
+### Introduction
+
+  The purpose of this experiment is to explore the effect of d-amphetamine sulfate on the behavior of rats. The behavior studied is the rate at which a mouse presses a lever to obtain water when it lacks water, and the rate is defined as the number of lever presses divided by the elapsed time of the test. The drugs in this test are divided into five different doses of the same drug, and the fixed dose contained in the saline solution is also included in the five different doses of drugs.
+  The purpose of the study was to observe the effects of different doses of drugs on the behavior of rats. According to the Table in Appendix 1, the data includes the number of the tested mouse, the drug group, and the compression rate after the injection of the drug. There is no missing value in the data. The drug group is evenly distributed, all of which are 10 observations. Then observe after the injection of the drug, the distribution of the compression rate can be found to be roughly symmetrical, and it can also be known in the subsequent verification that the data conforms to the normal distribution.
+
+### Discussion
+
+* 2.Dose 對 Rat Behavior 影響為何?
+
+  As can be seen from the following table, when the d-amphetamine sulfate has not been injected, the average compression rate of the tested mice is 0.764; when the injection dose is 0.5, the average value rises to 0.934; when the injection dose is 1, the average value continues to rise to 1.014; when the injection dose is 1.5, the average value drops slightly to 1.009; when the injection dose is 2, the average value drops to 0.85. According to the above statistics, the average compression rate of the rats after the injection of d-amphetamine sulfate was not lower than the average compression rate of the rats without injection of d-amphetamine sulfate.
+
+
+`r tableNums(name = "q1_2",  display = "full")`
+
+```{r}
+drb$dose=as.factor(drb$dose)
+a<-ddply(drb, ~ dose, summarise, mean = mean(rate), sd = sd(rate))
+kable(a)
+```
+
+
+  As can be seen from the figure below, among the five different doses of the same medicine, the average compression rate at a dose of 1 (mg/kg body weight) is the highest. When the dose is decreased or increased from 1 (mg/kg body weight), the average compression rate tends to decrease.
+
+
+```{r}
+ggplot(drb, aes(x=as.factor(dose), y=rate,fill=as.factor(dose))) + 
+  geom_boxplot()+
+  scale_fill_brewer(palette="Pastel1")
+```
+
+`r plotNums(name = "p1_2box",  display = "full")`
+
+  From the figure below, we can clearly find the compression rate distribution of each observation when injecting different doses. Among them, the compression rate distribution at a dose of 2 (mg/kg body weight) is wider, while in the case of injecting other doses, The compression rate distribution of each observation value is more concentrated relative to the distribution of dose 2 (mg/kg body weight).
+
+
+```{r}
+ratemean = aggregate(drb[,"rate"], list(as.numeric(levels(drb$dose))[drb$dose]), mean)
+colnames(ratemean) = c("rate", "mean")
+ratemean$xlo = as.numeric(ratemean$rate) - 0.05
+ratemean$xup = as.numeric(ratemean$rate) + 0.05
+par(mar = c(4, 4, 3, 1))
+plot(rate ~ as.numeric(levels(dose))[dose], data = drb, pch = 16,
+     axes = FALSE,xlim=c(-0.2,2.2),ylim=c(0.2,1.5),xlab="dose")
+axis(1, at = seq(0,2,0.5))
+axis(2, at = seq(0.2,1.5,0.2))
+segments(x0 = ratemean$xlo, y0 = ratemean$mean , x1 = ratemean$xup, y1 = ratemean$mean, lwd = 2, col = "red")
+```
+
+`r plotNums(name = "p1_2dot",  display = "full")`
+
+
+
+Assumptions of one-way ANOVA is:
+1. The sample is randomly sampled
+2. Independent between groups
+3. The variance between samples is homogeneity 4. Sample distribution is normal distribution
+
+  Therefore, we use the following test to test whether the sample meets the above assumptions to perform one-way ANOVA. First of all, we can know from the introduction of this experiment that the samples in this experiment are randomly distributed and independent of each other.
+  
+  Next, we use the Shapiro-Wilk normality test to test for normality to observe whether the data is in line with normality, and to choose which homogeneity test to do. The test result shows that its p-value=0.1>0.05, so we do not reject the null hypothesis. Therefore, it can be inferred that the data conform to the normal distribution.
+
+```{r}
+shapiro.test(drb$rate)
+```
+
+  Finally, Bartlett’s test is used to test whether the variance between samples is homogeneity, and from the previous test, it can be seen that the variables are all under the normal distribution. From the Bartlett test's p-value=0.8>0.05, it can be seen that the null hypothesis in the Bartlett’s test is not rejected, so it can be inferred that the variance between samples meets the homogeneity hypothesis.
+
+
+$$
+\begin{cases} 
+H_0:{\sigma_{0.5}^2=\sigma_1^2=\sigma_{1.5}^2=\sigma_2^2=\sigma_{2.5}^2}
+\\
+\\H_1:{not \, H_0}
+\end{cases}
+$$
+
+```{r}
+bartlett.test(rate ~ dose, data = drb) 
+```
+
+   
+  From the above test, it can be known that this data satisfies the hypothesis of one-way ANOVA. Otherwise, according to the one-way ANOVA table, in the case of significance level is equal to 0.05, different doses of d-amphetamine sulfate have a significant effect on the compression rate.
+
+
+$$
+
+Y_{ij}=\mu +\tau_i+\epsilon_{i} \quad, i=1\cdots k
+
+$$
+
+`r tableNums(name = "q1_2aov",  display = "full")`
+
+```{r}
+drb.aov = aov(rate ~ dose, data = drb)
+summary(drb.aov)
+```
+
+  It can be seen from the regression model analysis table that the dose 1 (mg/kg body weight) and dose 1.5 (mg/kg body weight) are significantly different from other groups, and the estimated coefficient can be known that the compression of the dose 1 (mg/kg body weight) group is the largest, followed by the compression rate of the dose 1.5 (mg/kg body weight) group, and the smallest compression rate group is the dose 2 (mg/kg body weight) group. Therefore, it can be inferred that the compression rate increases as the dose increases until the dose 1.5 (mg/kg body weight), and when the dose reaches 2 (mg/kg body weight), the compression rate drops sharply.
+
+$$
+y_i=\beta_0+\beta_1x_{ij}+\epsilon_{ij}, i=1,\cdots, 50
+\\
+x: dose\\
+i: number \text{ } of \text{ } mouses\\
+j: number \text{ } of \text{ } doses \text{ } group
+$$
+
+`r tableNums(name = "q1_2lm",  display = "full")`
+
+```{r}
+drb.lm = lm(rate ~ dose, data = drb)
+drb_lm =summary(drb.lm)$coefficients
+kable(drb_lm)
+```
+
+    
+Statistical model:
+
+  The following table is about the one-way ANOVA analysis, and the mean of estimated value of compression rate in this data is 0.9142, and the compression rate of mouses, which don’t get d-amphetamine sulfate is estimated to be -0.15; the compression rate effect of dose 0.5 is estimated to be 0.0198, dose; the compression rate effect of does 1 is estimated to be 0.0998, the compression rate effect of dose 1.5 is estimated to be 0.0948, and the compression rate effect of dose 2 is estimated to be -0.0642.
+
+
+`r tableNums(name = "q1_3",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("D:/CT_109/HW6/data/meanall.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+### Conclusion
+
+  When d-amphetamine sulfate has not been injected, the compression rate and the compression rate of dose 2 are faster, and if the dose is 0.5, 1, 1.5, the compression rate is slower.
+
+
+## BioMed DOE: Multiple LSQs
+
+  An experiment was designed to determine the effects of three diets on liver cholesterol in rats (A = control, B = control + vegetable fat, C = control + animal fat). Body weight classifications (H, M or L) of the rats and the litters from which they came were used to form a balanced set of Latin squares. The litter was nested in squares (i.e., different litters were used in each square), whereas the weight classifications were not nested. The data is presented as follows. Data is in file DOEchomultiLSQ.csv.
+
+### Introduction
+
+  The main purpose of this test is to determine the effects of three diets on the liver cholesterol of mice (group A: control group, group B: control group + vegetable fat, C: control group + animal fat), and use the weight to classify the mice (H, M or L) and the nest they came from, form a set of balanced Latin squares. The rat’s nest is nested in the grid, but the weight does not appear to be nested.
+  
+  The purpose of this study is to observe whether the diet group of rats affects the value of liver cholesterol. According to the Table in Appendix II, this data contains 27 observations and five variables, which are the number of times the Latin square is repeated, the weight of the mouse, the litter from which the mouse comes, diet and liver cholesterol, and there are no missing values. The top four variables are categorical variables, and the number of each category is the same, and the distribution of liver cholesterol values is approximately normal.
+
+
+### Discussion
+
+```{r}
+doe<- read.csv("D:/CT_109/HW6/data/DOEchomultiLSQ.csv")
+```
+
+  Through Table 5, It can be known that different diet groups have significant changes in liver cholesterol, so diet groups have a certain influence on liver cholesterol
+
+`r tableNums(name = "q2_5",  display = "full")`
+```{r, echo =F ,warning=FALSE}
+discript <- read_excel("D:/CT_109/HW6/data/ANOVA2.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+  It can be seen from the table below that the liver cholesterol of sq1 and sq2 is lower than the total average liver cholesterol; the liver cholesterol of sq3 is higher than the total average; the liver cholesterol of treat A and treat B is lower than the total average, while the liver cholesterol of treat C is lower than the total average. The liver cholesterol of the higher weight group is higher than the total average; the liver cholesterol of the middle weight and the lower weight group is lower than the total average; the liver cholesterol of litter1 in sq1, sq2, and sq3 is lower than the total average respectively, and litter3 also had higher liver cholesterol in sq1, sq2, and sq3. Among them, the liver cholesterol of litter2 in sq1 and sq2 was higher than the total average; on the contrary, the liver cholesterol in sq3 was lower than the total average.
+
+
+`r tableNums(name = "q2_6",  display = "full")`
+```{r, echo =F ,warning=FALSE}
+discript <- read_excel("D:/CT_109/HW6/data/meanall2.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+
+### Conclusion
+
+  Through the above statistical analysis, it can be inferred that there are significant differences in the number of repetitions, the mouse's nest, the weight of the mouse, and the eating habits in the case where the nesting layer the mouse comes from is in the Latin square matrix. Among them, the liver cholesterol of the test mice that ate animal fat was higher, and the other two groups were lower; the hepatic cholesterol of the test mice in the higher body weight group was higher, and the other two groups were lower; one of the test mice from litter1 Liver cholesterol is lower, while the liver cholesterol of mice from litter3 is higher.
+
+
+## Appendix
+`r tableNums_b(name = "var",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(drb, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+
+```
+
+`r tableNums_b(name = "var2",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(doe, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+
+```

@@ -1,0 +1,553 @@
+---
+title: "Descriptive Statistics in Clinical Trials"
+author: "Shu-Ping Chen"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    theme: united
+    highlight: tango
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+```{r setup, include=FALSE}
+options(warn=-1, digits=3)
+library(SASmarkdown)
+library(readxl)
+library(kableExtra)
+library(summarytools)
+library(stats)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1, digits=3)
+#Package
+#DFSUMMARY
+library(summarytools)
+library(stats)
+#DDPLY
+library(plyr)
+#KABLE
+library(kableExtra)
+knitr::opts_chunk$set(echo=FALSE)
+options(knitr.table.format="markdown")
+
+
+library(captioner)
+tableNums <- captioner(prefix = "Table")
+#1
+tableNums(name = "q2", caption = "The mean of testing score of whether take the drug Table")
+tableNums(name = "q21", caption = "The significant difference of whether take the drug Table")
+tableNums(name = "q3", caption = "The mean of testing score of whether take the drug A Table")
+tableNums(name = "q31", caption = "The significant difference of whether take the drug A Table")
+tableNums(name = "q4", caption = "The mean of testing score of whether take the drug B Table")
+tableNums(name = "q41", caption = "The significant difference of whether take the drug B Table")
+tableNums(name = "q5", caption = "The mean of testing score of whether receive psychotherapy Table")
+tableNums(name = "q51", caption = "The significant difference of whether receive psychotherapy Table")
+tableNums(name = "q6", caption = "The mean of testing score of whether receive chemical drug and psychotherapy Table")
+tableNums(name = "q61", caption = "The significant difference of whether receive chemical drug and psychotherapy Table")
+tableNums(name = "q7", caption = "The mean of testing score of whether receive drug A and psychotherapy Table")
+tableNums(name = "q71", caption = "The significant difference of whether receive drug A and psychotherapy Table")
+tableNums(name = "q8", caption = "The mean of testing score of whether receive drug A and psychotherapy Table")
+tableNums(name = "q81", caption = "The significant difference of whether receive drug B and psychotherapy Table")
+tableNums(name = "q9", caption = "Estimator of model in one-way ANOVA")
+tableNums(name = "q10", caption = "Summary of Bonferroni method for three drugs")
+tableNums(name = "q11", caption = "Summary of two-way ANOVA")
+tableNums(name = "q12", caption = "Summary of fixed-effect testing of variance analysis")
+tableNums(name = "q12_1", caption = "Summary of two-way ANOVA including interaction term")
+tableNums(name = "q14", caption = "Summary of Bonferroni method for three drugs and psychotherapy")
+
+##Q2
+
+tableNums(name = "et2_2", caption = "The significant difference of whether take the drug A Table")
+tableNums(name = "et2_3", caption = "The significant difference of whether take the drug B Table")
+tableNums(name = "et2_4", caption = "The significant difference of whether take both the drug A the drug B Table")
+tableNums(name = "c2q5", caption = "The difference of the reduce of blood glucose for four therapies")
+tableNums(name = "c2q6", caption = "Estimator of model in one-way ANOVA")
+tableNums(name = "c2q7", caption = "Summary of Bonferroni method for chemical drugs")
+tableNums(name = "c2q8", caption = "Summary of two-way ANOVA ")
+tableNums(name = "c2q9", caption = "Summary of fixed-effect testing of variance analysis")
+tableNums(name = "c2q11", caption = "Summary of one-way ANOVA")
+
+##Appendix
+tableNums_b<- captioner(prefix = "Appendix")
+tableNums_b(name = "var", caption = "Information of data 1")
+tableNums_b(name = "var2", caption = "Information of data 2")
+```
+
+
+# Descriptive Statistics in Clinical Trials
+## BioMed DOE: Two‐Way CRD
+  Combination of Therapies: Two‐Method Combination Clinical Trial
+In this randomized controlled clinical trial, depressed patients either receive psychotherapy (treatment) or not (control) and receive one of three drugs (A, B, or placebo). After six months each patient completes a mood evaluation on which higher scores mean improved mood or decreased depression. Variable description is in Table 1, and data is in file CTDepressComb.csv.
+
+```{r}
+ctd <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/CTDepressComb.csv")
+ctc <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/ctcombineComplete.csv")
+
+```
+
+###Introduction
+
+  From the variable description table in Table 1 in the appendix, the data includes the patients’ code, drug group, whether to receive psychotherapy, and psychological evaluation scores. There is no missing value in the data. The drug group is evenly distributed, and there are 6 people, 6 people, and 6 people in group A, B, and C, respectively. The distribution of whether or not they received psychotherapy was also fairly even, with 9 people in each group. The distribution of psychological evaluation scores is slightly different at the middle value in the distribution, and the lower value is equivalent to the higher value in the distribution.
+
+### Discussion
+
+* 1. Does chemical drug have effect to cure the depression?
+
+`r tableNums(name = "q2",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_2.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+`r tableNums(name = "q21",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_2.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In T test, we set the significance level to 0.05:
+
+  chemical drugs vs. placebo: From the test for equality of variance, it can be known that p-value=0.42>0.05, so the variances of the two are equal. Then, the p-value=0.0028<0.05 obtained by the pooled method shows that there is a significant difference in the mean of testing score between the group taking the chemical drug and the group taking the placebo. From the mean of testing score, it can be known that the effect of taking chemical drug is better.
+
+
+* 2.Does chemical drug A have effect to cure the depression?
+
+`r tableNums(name = "q3",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_3.csv")
+kable(discript) %>%
+  kable_styling()
+```
+`r tableNums(name = "q31",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_3.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In this test, patients who took drug A were set as group A, and patients who took placebo were set as group P. In T test, we set the significance level to 0.05: 
+
+  Drug A vs. Placebo: From the test for equality of variance, it can be known that p-value=0.19>0.05, so the variance of both is equal. Then, the p-value=0.0142<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group taking drug A and group taking placebo. From the mean of testing score, it can be known that the effect of taking Medicine A is better.
+
+
+* 3. Does chemical drug B have effect to cure the depression?
+
+`r tableNums(name = "q4",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_4.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+`r tableNums(name = "q41",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_4.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In this test, patients who took drug B were set as group B, and patients who took placebo were set as group P. In T test, we set the significance level to 0.05: 
+  Drug B vs. Placebo: From the test for equality of variance, it can be known that p-value=0.95>0.05, so the variance of both is equal. Then, the p-value=0.0046<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group taking drug B and group taking placebo. From the mean of testing score, it can be known that the effect of taking Medicine B is better.
+
+
+* 4. Does psychotherapy have effect to cure the depression?
+
+`r tableNums(name = "q5",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_5.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+`r tableNums(name = "q51",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_5.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In this test, patients who received psychotherapy were set as group yes, and patients who did not receive psychotherapy were set as group no. In T test, we set the significance level to 0.05: 
+  Received psychotherapy vs. Not received psychotherapy: From the test for equality of variance, it can be known that p-value=0.45>0.05, so the variance of both is equal. Then, the p-value<0.0001<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group yes and group no. From the mean of testing score, it can be known that the effect of receiving psychotherapy is better.
+
+
+* 5. Does combination of chemical drug and psychotherapy have effect to cure the depression?
+
+`r tableNums(name = "q6",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_6.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+`r tableNums(name = "q61",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_5.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In this test, patients who received chemical drug and psychotherapy were set as group C, and patients who did not receive at least one of chemical drug and psychotherapy were set as group D. In T test, we set the significance level to 0.05: 
+  Received chemical drug and psychotherapy vs. Not received at least of chemical drug and psychotherapy: From the test for equality of variance, it can be known that p-value=0.45>0.05, so the variance of both is equal. Then, the p-value<0.0001<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group C and group D. From the mean of testing score, it can be known that the effect of receiving chemical drug and psychotherapy is better.
+
+* 6. Does combination of drug A and psychotherapy have effect to cure the depression?
+
+`r tableNums(name = "q7",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_7.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+`r tableNums(name = "q71",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_7.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In this test, patients who received drug A and psychotherapy were set as group Y, and patients who did not receive at least one of drug A and psychotherapy were set as group N. In T test, we set the significance level to 0.05: 
+  Received drug A and psychotherapy vs. Not received at least of drug A and psychotherapy: From the test for equality of variance, it can be known that p-value=0.86>0.05, so the variance of both is equal. Then, the p-value<0.0001<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group Y and group N. From the mean of testing score, it can be known that the effect of receiving drug A psychotherapy is better.
+
+
+* 7. Does combination of drug B and psychotherapy have effect to cure the depression?
+
+`r tableNums(name = "q8",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/cl1_8.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+`r tableNums(name = "q81",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et1_8.csv")
+kable(discript) %>%
+  kable_styling()
+```
+In this test, patients who received drug B and psychotherapy were set as group Y, and patients who did not receive at least one of drug A and psychotherapy were set as group N. In T test, we set the significance level to 0.05: 
+  Received drug B and psychotherapy vs. Not received at least of drug B and psychotherapy: From the test for equality of variance, it can be known that p-value=0.38>0.05, so the variance of both is equal. Then, the p-value=0.004<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group Y and group N. From the mean of testing score, it can be known that the effect of receiving drug B psychotherapy is better.
+
+
+* 8. Constructing model by using 1-way ANOVA
+
+$$
+
+Y_{ij}=\mu +\tau_i+\epsilon_{i} \quad, i=1\cdots k
+
+$$
+
+  The following table is a 1-way ANOVA analysis, and the mean of estimated value of the mood score of this data is 20, in which the therapeutic effect of drug A is estimated to be 4.5, the therapeutic effect of drug B is estimated to be 2.5, and the therapeutic effect of placebo is estimated to be -7. Acceptable The estimated therapeutic effect of psychotherapy is 5, and the estimated therapeutic effect of no psychotherapy is -5.
+
+`r tableNums(name = "q9",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/meanall1_9.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 9. If you want to make multiple comparisons to answer the research purpose, how many multiple comparisons are there in total? How to make it better?
+
+  Multiple comparisons are made for three drug groups, a total of 6 multiple comparisons, because the number of each group is the same, so the following two methods are used for comparison. As more groups are tested, the actual probability of type I error will increase. In order to avoid type I error, the Bonferroni method for the multiple comparison method will be used. This method means that we will divide the initially set significant level value by the total execution, in order to get a new significance level. Furthermore, it can be seen from the table below that using the Bonferroni method in the multiple comparison method, only the A-B group and the B-A group have no significant difference, and the other multiple comparison groups (A-P group, B-P group, P-A group, P-B group) have significant differences in order.
+
+`r tableNums(name = "q10",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/clddrugb1_10.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 10.	Constructing model by using 2‐way factorial design
+
+$$
+
+Y_{ij}=\mu +\alpha_i+\beta_j+\epsilon_{ij} \quad, i=1,2,3 \quad j=1,2
+
+$$
+
+  Observing the 2-way ANOVA analysis table, we can see that the p-values of the two variables are both less than the new significance level, 0.05, so it can be inferred that there is a difference in the degree of depression between the two variable groups.
+
+
+`r tableNums(name = "q11",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/anova1_11.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 11.	If this research data is analyzed using 2-way ANOVA, should we need to include an interaction term?
+
+$$
+
+Y_{ij}=\mu +\alpha_i+\beta_j+(\alpha\beta)_{ij}+\epsilon_{ij} \quad, i=1\cdots k
+
+$$
+
+  Assuming that the significance level = 0.05, the p-value of the interaction term is less than the new significance level from the variance analysis table in the figure below. Then observe the figure below to find the blue line (treat=A) and the red line (treat =B) There is overlap, so it can be inferred that the interaction term is significant.
+
+`r tableNums(name = "q12",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/tests1_12.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+```{r}
+saspath <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -linesize 75"
+knitr::opts_chunk$set(engine="sas", engine.path=saspath, 
+        engine.opts=sasopts, comment=NA, include = T)
+```
+
+```{sas}
+libname path "C:/Users/shupingchen/Downloads/HW5/data";
+proc sgplot data=path.lsmplot1_12;
+title 'LS-Means for drug*psychotherapy';
+series y=mean x=Level/group=group;
+scatter y=mean x=Level/group=group;
+run;
+
+proc sgplot data=path.lsmplot2_9;
+title 'LS-Means for A*B';
+series y=mean x=Level/group=group;
+scatter y=mean x=Level/group=group;
+run;
+
+```
+
+![](SGPlot.png)
+Figure 1:LS-MeanLS-Means for drug*psychotherapy
+
+```{r, engine='R'}
+knitr::opts_chunk$set(engine="R",  engine.path=NULL, 
+        engine.opts=NULL, comment=NA, include = T)
+```
+
+  Observing the 2-way ANOVA analysis again, it can be seen that the p-value of the interaction term=0.0104 is less than the new significance level, so it can be inferred to be a significant difference. Observing the variables drug and psychotherapy, it can be seen that the p-value is less than 0.001, so it can be inferred different drug groups and whether psychotherapy has a significant impact on the degree of depression, and it can be known that there is an interactive relationship.
+
+`r tableNums(name = "q12_1",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/anova1_12.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+* 12.	If this research data is analyzed using 2-way ANOVA, and the interaction term is not significant, should we need to include an interaction term?
+
+  If the interaction term in the 2-way ANOVA analysis of this experiment is not significant, it can be inferred that there is no interaction relationship between the two variables, so there is no need to include the interaction term.
+
+
+* 13.	What if this research is 1 factor, 6 levels, Under the situation of 1‐way ANOVA analysis?
+  
+  As can be seen from the table below, using the Bonferroni method in the multiple comparison method, only the A-B group and the B-A group have no significant differences, and the other multiple comparison groups (A-P group, B-P group, P-A group, P-B group) have significant differences.
+
+`r tableNums(name = "q14",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/clddrugb1_14.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 14.	What is the difference between using 1-way ANOVA and using 2-way ANOVA for this research data?
+
+  In addition to the different model between the 1-way ANOVA analysis using 1 factor as well as 6 levels with the 2-way ANOVA analysis, there are also differences in the groups of observation interaction items. Through 2-way ANOVA, we can only know that there is an interaction between the two variables, so it is impossible to see in detail which groups of interaction items are different. However, using 1-way ANOVA analysis can be used to observe in detail which groups of individual interaction item groups are different.
+
+### Conclusion
+
+  According to the above statistical analysis, the combination of drug A and psychotherapy has the best effect in treating depression.
+
+## BioMed DOE: Two‐Way CRD and Missing Values
+
+Combination of Therapies: Two‐Drug Combination Clinical Trial 
+  A clinical trial explored the effect of two different chemical drugs A and B combined treatment on lowering blood sugar. The purpose of the research is to analyze whether the combined treatment of these two drugs is effective. The research treatments consisted of four treatments: chemical drug A and chemical drug B combined treatment, chemical drug A alone, chemical drug B alone, and placebo. In the study, patients were randomly assigned to receive either type of treatment. The response variable is the decrease in blood glucose after 4 weeks of treatment.
+
+
+###Introduction
+
+  According to the variable description table in Appendix Table 2, the data includes the patients’ code, blood sugar lowering index, whether drug A is taken, whether drug B is taken, and there is no missing value in the data. The distribution of drug groups is total for group A. 12 people, 12 people in group B, and 24 people in placebo group. The distribution of the blood sugar lowering index is not even.
+
+### Discussion
+
+* 1. If there are any missing values in data file (ctcombineNA.csv), what problem it may contribute to?
+
+  In general analysis, the observation of data containing missing values is often deleted, and then the complete partial data is used for analysis. It seems that the problem of analyzing incomplete data has been avoided, but the information hidden by the deleted data has been affected. Among them, when the missing ratio is too high, in many statistical analysis methods, the analysis containing missing data is used. Compared with the analysis of completely deleting the missing data, the results obtained by these two are significantly different. Therefore, if the original data includes too much missing values, not only will the statistical power be reduced, the standard error will increase, and even the information of the data will be distorted or misleading.
+
+
+* 2. Does chemical drug A have effect to lower blood sugar?
+
+`r tableNums(name = "et2_2",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et2_2.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+  In this test, patients who took drug A were set as group A, and patients who did not take drug A were set as group P. In T test, we set the significance level to 0.05: 
+Took drug A vs. Took Placebo: From the test for equality of variance, it can be known that p-value=0.25>0.05, so the variance of both is equal. Then, the p-value=0.0519>0.05 obtained by the pooled method shows that there is no significant difference in the variance of the mean of testing score between the group A and group P. 
+
+
+* 3. Does chemical drug B have effect to lower blood sugar?
+
+`r tableNums(name = "et2_3",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et2_3.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+  In this test, patients who took drug B were set as group B, and patients who tool Placebo were set as group P. In T test, we set the significance level to 0.05: 
+Took drug B vs. Took Placebo: From the test for equality of variance, it can be known that p-value=0.39>0.05, so the variance of both is equal. Then, the p-value=0.01<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group B and group P. 
+
+* 4. Does the combination of chemical drug A and chemical drug B have effect to lower blood sugar?
+
+`r tableNums(name = "et2_4",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/et2_4.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+In this test, patients who took combination of drug A and drug B and were set as group AB, and patients who took Placebo were set as group P. In T test, we set the significance level to 0.05: 
+  Took drug A and B vs. Took Placebo: From the test for equality of variance, it can be known that p-value=0.49>0.05, so the variance of both is equal. Then, the p-value<0.0001<0.05 obtained by the pooled method shows that there is a significant difference in the variance of the mean of testing score between the group AB and group P.
+
+
+* 5. Does the combination of chemical drug A and chemical drug B have better effect to lower blood sugar?
+
+`r tableNums(name = "c2q5",  display = "full")`
+
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/ab2_5.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+  From Table 24, it can be seen that the mean value of overall blood sugar reduction in patients undergoing the combined treatment of A and B drugs is higher than that of the other three treatments. Therefore, it can be inferred that the combined treatment of A and B drugs is compared with the other three treatments, the treatment method has a higher curative effect.
+
+* 6. Constructing model by using 1-way ANOVA
+
+`r tableNums(name = "c2q6",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/meantable2_6.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 7. To perform multiple comparisons to answer the research purpose, how many multiple comparisons are there in total? How to make it better?
+
+A total of 12 multiple comparison analyses are required. First, the two variables are divided into:
++ (1) A: only chemical drugs A
++ (2) B: only chemical drugs B
++ (3) AB: simultaneous use of chemical drugs A and chemical drugs B
++ (4) P: use of placebo
+
+  To perform multiple comparison analysis, observe the following table, we can see that there are significant differences in AB-P group, BP group, P-AB group, PB group, and there are no significant differences among the other multiple comparison groups.
+
+`r tableNums(name = "c2q7",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/CLDbon2_7.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+* 8. What if the trial is  $ 2^2 $ factorial design, and using 2‐way ANOVA analysis?
+  From the ANOVA analysis table in the following table, it can be seen that the p-value of variable A is equal to 0.0145 and the p-value of variable B is equal to 0.0008, both of which are less than the significance level, 0.05, so it can be inferred that these two variables have a difference in the value of blood sugar reduction.
+
+`r tableNums(name = "c2q8",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/anova2_8.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 9. If this research data is analyzed using 2-way ANOVA, should we need to include an interaction term?
+
+  Assuming that the significance level is equal to 0.05. Firstly, from the variance analysis table below, we can see that the p-value of the interaction term is 0.6397>0.05, the p-value of variable A is 0.0166, the p-value of variable B is 0.001, and both are less than the significance level. Observing the following figure again, you can find that the blue line (treat=A) and the red line (treat=B) do not cross, so it can be inferred that the interaction term is not significant.
+
+
+
+![](SGPlot1.png)
+Figure 2:LS-Means for A*B
+
+`r tableNums(name = "c2q9",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/tests2_9.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 10.	If this research data is analyzed using 2-way ANOVA, and the interaction term is not significant, should we need to include an interaction term?
+
+  If the interaction term in the 2-way ANOVA analysis of this experiment is not significant, it can be inferred that there is no interaction relationship between the two variables, so there is no need to include the interaction term.
+
+
+* 11.	What if this research is 1 factor, 4 levels, Under the situation of 1‐way ANOVA analysis?
+
+  It can be seen from Table 26 that using the Bonferroni method in the multiple comparison method, only the AB-P group, B-P group, P-AB group, and P-B group have significant differences, and the other multiple comparison groups have no significant difference.
+  It can be seen from the table below that the variable treat is for different drug groups, and its p-value=0.0017 <significant level=0.05, so it can be inferred that there is a significant difference in the blood glucose reduction value between the drug groups.
+
+
+`r tableNums(name = "c2q11",  display = "full")`
+```{r, echo =F}
+discript <- read.csv("C:/Users/shupingchen/Downloads/HW5/data/anova2_11.csv")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+* 12.	What is the difference between using 1‐way ANOVA and 2‐way ANOVA?
+
+  In addition to the model difference between the 1-way ANOVA analysis using 1 factor and 4 levels and the 2-way ANOVA analysis, there are also differences in the interaction items. 2-way ANOVA can only know that there is an interaction between the two variables, but it is impossible to see in detail whether there is any difference in the interaction terms between groups. However, 1-way ANOVA analysis can be used to observe in detail which groups of individual interaction term of each group are different.
+
+### Conclusion
+
+  According to the above statistical analysis, the treatment effect of combining chemical drug A and chemical drug B is the best, followed by taking chemical drug B, and taking only placebo is the worst.
+
+```{r, engine='R'}
+knitr::opts_chunk$set(engine="R",  engine.path=NULL, 
+        engine.opts=NULL, comment=NA, include = T)
+```
+## Appendix
+`r tableNums_b(name = "var",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctd, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+
+```
+
+`r tableNums_b(name = "var2",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctc, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+```
