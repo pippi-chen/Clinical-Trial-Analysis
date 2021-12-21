@@ -1,0 +1,580 @@
+---
+title: "Descriptive Statistics in Clinical Trials"
+author: "Shu-Ping Chen"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: true 
+    theme: united
+    highlight: tango
+---
+
+
+```{r setup, include=FALSE}
+options(warn=-1, digits=3)
+library(SASmarkdown)
+library(readxl)
+library(kableExtra)
+library(summarytools)
+library(stats)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1, digits=3)
+#Package
+#DFSUMMARY
+library(summarytools)
+library(stats)
+#DDPLY
+library(plyr)
+#KABLE
+library(kableExtra)
+knitr::opts_chunk$set(echo=FALSE)
+options(knitr.table.format="markdown")
+
+
+library(captioner)
+tableNums <- captioner(prefix = "Table")
+#1
+tableNums(name = "table1", caption = "Number of drugs using after the surgery every hour")
+tableNums(name = "manova", caption = "MANOVA for every hour after surgery")
+tableNums(name = "manovalog", caption = "MANOVA after log transformation for every hour after surgery")
+tableNums(name = "manova2", caption = "MANOVA for every interval after surgery")
+tableNums(name = "manova2log", caption = "MANOVA after log transformation for every interval after surgery")
+#2
+tableNums(name = "table2", caption = "PANSS value in different variables and categories")
+tableNums(name = "anova", caption = "ANOVA test of variable, change")
+tableNums(name = "schef", caption = "Scheffe Multiple Comparison for variable, change")
+tableNums(name = "bonfer", caption = "Bonferroni Multiple Comparison for variable, change")
+tableNums(name = "model1", caption = "ANOVA Table of variable, change")
+tableNums(name = "model2", caption = "ANOVA Table of variable, outcome")
+
+
+## Appendix
+tableNums_b<- captioner(prefix = "Appendix")
+tableNums_b(name = "var", caption = "Information of data in Postoperative pain Clinical Trial")
+tableNums_b(name = "var2", caption = "Information of data in CRD Clinical Trial")
+```
+
+
+# Descriptive Statistics in Clinical Trials
+## A. Postoperative pain Clinical Trial
+  In a double-blind, placebo-controlled study, patients with postoperative pain were randomly assigned to one of three groups: treatment A, treatment B, or placebo. Subjects enrolled in the study received a single dose of their assigned treatment when they reported moderate to severe postoperative pain. The primary outcome variable was the quantity of rescue medication used; this was recorded at hourly intervals for 24 hours after dosing. The study protocol also specified a secondary analysis to be carried out after combining the data over prespecified time intervals (0–3 hours, 4–6 hours, 7–12 hours, 13–24 hours). In this analysis, there are four repeated measurements, each computed as the average of the hourly measurements obtained during the interval. Variable description is in Table 1, and data are in files CTpainrescueWide.csv and CTpainrescueLong.csv.
+
+
+### Introduction
+  
+  This study is a double-blind placebo-controlled study. In order to observe the effects of different drugs on the improvement of postoperative pain, patients will be randomly assigned to the drug A group, the drug B group, and the placebo group, and the patients will take the medicine of the treatment group when the postoperative pain is met. In addition, the data of this study is that 24 hours after taking the medicine, the number of medicines taken by the patient is recorded every hour, and this data is used for the first analysis. Furthermore, the second analysis will be carried out with the average of the four time-intervals of 0-3 hours, 4-6 hours, 7-12 hours, and 13-24 hours.
+  
+
+
+```{r}
+ctpw <- read.csv("D:/CT_109/HW4/data/CTpainrescueWide.csv")
+ctpl <- read.csv("D:/CT_109/HW4/data/CTpainrescueLong.csv")
+ctb <- read.csv("D:/CT_109/HW4/data/CTSchizoDosingFindingCRDBalance.csv")
+```
+  According to the variable description table in Appendix 1, the data includes the subject code, treatment group, and the number of rescue medications measured from 1 to 24 hours after surgery. There is no missing value in the data. The treatment groups are evenly distributed, respectively. There are 41 people in group A, 41 people in group B, and 40 people in group C. Observing the number of rescue drugs at different times, we can find that the distribution of the first hour (y1) is about normal, and the second to the twenty-fourth hour (The distribution of y2-y24) tends to be skewed to the right.
+
+### Exploratory Data Analysis
+
+  As can be seen from the table below, in the first hour after taking the drug, the drug A group took the lowest dose, while the placebo group took the highest dose. In addition, the doses of the drug A group and the drug B group 1-3 hours after taking the drug have a downward trend, but the doses of 4-12 hours fluctuate up and down, and continue to decline at 13 hours. The doses taken in the placebo group continued to fluctuate, but there was still a downward trend. Finally, the difference in the doses of the drugs taken between the three groups in the first hour and the last hour, with the drug B group reducing the most and the drug A group the least, and the last hour dose was similar to the placebo group.
+
+`r tableNums(name = "table1",  display = "full")`
+
+  From the figure below, you can find the difference in the average number of drugs used by patients in the A (drug A) group, B (drug B) group, and C (placebo) group in different hours. The patients in the placebo group used more drugs on average in almost every hour than the other two groups, while the average number of drugs used by the patients in the drug A group and the drug B group was similar in most hours.
+ 
+```{r,warning=FALSE,message=FALSE}
+ctpl <- na.omit(ctpl)
+
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr) 
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  datac$se <- datac$sd / sqrt(datac$N)  
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  return(datac)
+}
+
+ctpl$treat <- as.factor(ctpl$treat)
+ctpl$outcome <- as.numeric(ctpl$outcome)
+
+summary <- summarySE(ctpl, measurevar="outcome", groupvars=c("treat","time"), na.rm=TRUE)
+pd <- position_dodge(0.6)
+
+plot <- ggplot(summary, aes(x=time, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.5, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time(hour)") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.95))             
+plot + ylim(0, 4)
+```
+
+Figure 1: Change of the number of drugs taking in different treatment groups
+
+  As can be seen from the figure below, the average dose of drugs in the four periods analyzed in the second analysis, the average dose of the placebo group is higher than that of the other two groups, and the average dose of drugs between the other two groups There is not much difference in the dosage taken.
+
+```{r,warning=FALSE,message=FALSE}
+ctpl2 <- read.csv("D:/CT_109/HW4/data/CTpainrescueLong2.csv")
+ctpl2 <- na.omit(ctpl2)
+ctpl2$treat <- as.factor(ctpl$treat)
+ctpl2$outcome <- as.numeric(ctpl$outcome)
+
+summary <- summarySE(ctpl2, measurevar="outcome", groupvars=c("treat","interval"), na.rm=TRUE)
+pd <- position_dodge(0.1)
+
+plot <- ggplot(summary, aes(x=interval, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.1, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time(hour)") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.95))             
+plot + ylim(1, 3)
+```
+Figure 2: Change of the number of drugs taking in different treatment groups in each period
+
+
+
+```{r}
+saspath <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -linesize 75"
+knitr::opts_chunk$set(engine="sas", engine.path=saspath, 
+        engine.opts=sasopts, comment=NA, include = T)
+```
+
+```{sas ex-sas }
+libname path "D:/CT_109/HW4/data";
+proc import datafile="D:/CT_109/HW4/data/CTpainrescueWide.csv"
+out=ctpw
+dbms=csv  replace; getnames=yes;
+run; 
+proc import datafile="D:/CT_109/HW4/data/CTpainrescueLong.csv"
+out=ctpl
+dbms=csv  replace; getnames=yes;
+run; 
+data ctpwn;
+set ctpw;
+interval1=round(mean(of y1-y3),0.01);
+interval2=round(mean(of y4-y6),0.01);
+interval3=round(mean(of y7-y12),0.01);
+interval4=round(mean(of y13-y24),0.01);
+run;
+data intr;
+set ctpwn;
+array inter interval1-interval4;
+count=0;
+do interval=1,2,3,4;
+ count=count+1;  
+ outcome=inter{count};
+ output; 
+end;
+keep id treat interval outcome;
+run;
+
+proc sgpanel data=intr;
+panelby treat/ novarname sparse columns = 3 rows = 1;
+vbox outcome / category=interval;
+run;
+data ctpwn;
+set ctpw;
+interval1=round(mean(of y1-y3),0.01);
+interval2=round(mean(of y4-y6),0.01);
+interval3=round(mean(of y7-y12),0.01);
+interval4=round(mean(of y13-y24),0.01);
+change=y24-y1;
+run;
+data intr;
+set ctpwn;
+array inter interval1-interval4;
+count=0;
+do interval=1,2,3,4;
+ count=count+1;  
+ outcome=inter{count};
+ output; 
+end;
+keep id treat interval outcome;
+run;
+
+proc sgpanel data=intr;
+panelby interval;
+histogram outcome;
+run;
+
+
+
+proc import datafile="D:\CT_109\HW4\data\CTSchizoDosingFindingCRDBalance.csv"
+out=ctb
+dbms=csv  replace; getnames=yes;
+run; 
+data ctb;
+set ctb;
+change=outcome-baseline;
+run;
+data ctbn;
+set ctb;
+array month baseline outcome change;
+count=0;
+do time=1 to 3;
+    count=count+1;
+    y=month{count};
+    output;
+end;
+run;
+data ctbn1;
+set ctbn;
+format status $8.;
+if time=1 then status="baseline";
+else if time=2 then status="outcome";
+else if time=3 then status="change";
+keep id dose gender time  status y;
+run;
+proc format ;
+value dosef
+0="安慰劑組"
+40="低劑量組"
+80="中劑量組"
+120="高劑量組"
+200="總合";
+run;
+
+proc sgpanel data=ctbn1;
+where status^="change";
+panelby dose/ novarname sparse columns = 4 rows = 1;
+vbox y / category=status;
+format dose dosef.;
+run;
+
+proc sgpanel data=ctbn1;
+where status="change";
+label y="change";
+panelby dose/ novarname sparse columns =4 rows = 1;
+vbox y / category=gender;
+format dose dosef.;
+run;
+
+proc sgplot data=path.rsplotc;
+title 'Residuals by Predicted for change';
+scatter y=Residual x=Predicted;
+run;
+
+proc sgplot data=path.rsploto;
+title 'Residuals by Predicted for outcome';
+scatter y=Residual x=Predicted;
+run;
+
+```
+
+  It can be seen from Figure 3 that, 1-3 hours after taking the drug, the drug doses of the patients in the drug A and drug B groups are lower than the placebo group; 4-6 hours after taking the drug, the drug A and the dose of the drug taken by the patients in the drug group B increased, while the dose taken by the placebo group decreased. The three treatment groups took the same dose at this time; 7-12 hours after taking the drug, the doses of the drugs taken by the patients in the A and drug B groups generally decreased, while the doses in the placebo group increased; 13-24 hours after taking the drugs, for patients in the three treatment groups, the dose of medications taken continued to decrease, with the placebo group having the largest decrease. It can also be seen from the figure that 4-6 hours and 13-24 hours after taking the drug, there are outliers in the drug A and drug B groups, and the distribution of the different doses of the two groups is relatively concentrated; and the placebo group had outliers 4-24 hours after taking the medicine, and its full range was larger than the other two groups.
+
+![](sgpanel.png)
+Figure 3: The dosage of medicament in 4 periods of different test groups Boxplot
+
+
+```{r, engine='R'}
+knitr::opts_chunk$set(engine="R",  engine.path=NULL, 
+        engine.opts=NULL, comment=NA, include = T)
+```
+
+
+  From Figure 4, we can see the difference between the average dose of the test group in the first hour and the 24th hour in each group. On the whole, the average dosage of medicines in the three groups showed a downward trend. Among them, the medicine A group had the smallest decline, and the medicine B group had the largest decline.
+
+```{r,warning=FALSE,message=FALSE}
+ctpl3<-ctpl[(ctpl$time==1 | ctpl$time==24),]
+
+summary <- summarySE(ctpl3, measurevar="outcome", groupvars=c("treat","time"), na.rm=TRUE)
+pd <- position_dodge(0.6)
+plot <- ggplot(summary, aes(x=time, y=mean, colour=treat, group=treat)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.5, position=pd) +
+  geom_line(position=pd, aes(linetype=treat)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time(hour)") +
+  ylab("outcome") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.95))
+plot + ylim(1, 4)
+```
+
+Figure 4: Drug dosage before and after 24 hours in different test groups Plot
+
+### Method
+
+#### MANOVA
+
+  The test is divided into three drug groups, and the dosage of the drugs is regarded as a continuous form. Therefore, to determine whether there is a difference between the test groups, the MANOVA test is used, and the follow-up analysis is performed on the basis of significance level as 0.05.
+
+Hypothesis Testing:
+
+$$
+\begin{cases} H_0:{\mu_1=\mu_2=...=\mu_k}
+\\
+\\H_1:{not \, H_0}\end{cases}
+$$
+
+  Through the MANOVA test, you can observe whether the average values of different variables are significantly different. Among them, the response variable is the number of medications taken every hour from the 1st hour to the 24th hour, and the explanatory variable is the treatment group. As can be seen from the table below, there is no significant difference in the mean of almost all explanatory variables, and only the mean of the number of drugs taken at significantly different.
+
+`r tableNums(name = "manova",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/manova.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+  Because the drug doses taken at different times (y1-y24) have a right- skewed trend as a whole, log transformation is performed on the data, and after conversion, the MANOVA test is performed again, and the alpha is set to 0.05. From the table below, we can see that only the 13th, 14th, and 16th hour averages are significantly different between the groups, and there are no significant differences for the rest.
+
+`r tableNums(name = "manovalog",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/manova_log.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+  Through the MANOVA test, you can observe whether the average values of different variables are significantly different. Among them, the number of medications taken during the four periods of the response variable is in order: 0-3 hours, 4-6 hours, 7-12 hours, 13-24 hours, and the explanatory variable is the treatment group. As can be seen from the table below, there is no significant difference in the mean of all explanatory variables.
+
+`r tableNums(name = "manova2",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/manova_interval.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+  After merging the pre-planned time intervals, perform a secondary analysis to observe in advance whether the time interval has a biased distribution trend, and observe its distribution first.
+
+![](sgpanel1.png)
+Figure 5: The dosages taking in different interval Histogram
+
+  As can be seen from the above figure, the dose distribution of drugs taken at different time intervals has a right-skewed trend, so log transformation of the data is performed. After the transformation, the MANOVA test was performed again, and the p-values were all greater than 0.05, which can be inferred that there is no significant difference between different groups.
+
+`r tableNums(name = "manova2log",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/manova_loginterval.xls")
+kable(discript) %>%
+  kable_styling()
+```
+
+- Constraints: The MANOVA test cannot effectively analyze the bias, and this analysis is performed on the mean, so it is impossible to know whether there is a difference in the variance.
+
+
+### Conclusion
+  
+The data in this study has a serious right-skewed trend. As we directly analyze the data by MANOVA, it can be seen that only a few response variables have significant differences between the groups. In order to deal with the problem of data right-skewed, we analyze again by using MANOVA analysis after log transformation. Finally, there are still only a few means of response variables that are significantly different between groups. Therefore, it can be inferred through statistical methods that taking drugs cannot effectively reduce postoperative pain.
+
+
+## B. Statistical Design: CRD
+  Consider a Phase II trial in patients with schizophrenia. A balanced design was used in the trial with the total sample size of 240 patients. The patients were randomly allocated to four trials arms: Placebo, Low dose (40 mg), Medium dose (80 mg) and High dose (120 mg). The primary endpoint was the change from baseline in the Positive and Negative Syndrome Scale (PANSS) total score to Week 4. This endpoint was assumed following a normal distribution, and a lower value at the Week 4 visit indicated beneficial effect. The one-sided Type I error rate in this clinical trial was set to α = 0.025. Gender and baseline PANSS were included in the data set because they were likely to influence the primary endpoint, e.g., the PANSS total score at baseline was expected to be strongly correlated with the change from baseline to Week 4. It is also worth mentioning that there were lots of missing observations in the trial. The early dropout rate was over 15% in all trial arms. For the sake of simplicity, the missing values of the primary endpoint were imputed using the basic LOCF (last observation carried forward) method. Variable description is in Table 2, and data is in file CTSchizoDosingFindingCRDBalance.csv.
+
+### Introduction
+  Conduct a two-stage trial on patients suffering from schizophrenia. In this trial, a balanced design was used, and the total number of samples was 240 patients. Patients will be randomly assigned to one of the following four test groups: placebo group, low-dose group (40 mg), medium-dose group (80 mg), and high-dose group (120 mg). The main test indicator is the change in the total score of the Active and Negative Symptom Scale (PANSS) from baseline to the fourth week. In this clinical trial, the single-tailed type one error was set significance level to 0.025.
+  Observing the variable description table in Table 2 in the appendix again, the data includes the patients’ code, treatment group, gender, and the measured values at the beginning of the experiment and the fourth week after the experiment. The groups are evenly distributed, with 60 persons in each group, male and female. The ratio is also not much different. The distribution of measured values at the beginning of the experiment and the fourth week after the experiment is approximately normal. The data is processed using the Loss Value of the Basic Last Observed Value Forward Method (LOCF), so there is no missing value here.
+
+
+### Exploratory Data Analysis
+
+  According to the table below, the variable, change, is the amount of change before and after treatment. Firstly, we observe the gender. Under different treatment groups, males in the placebo group have an average smaller PANSS than the other groups, and there is no significant difference in PANSS between the rest of the males and females. At baseline, the average PANSS of the middle-dose group and the high-dose group was lower than that of the placebo group and the low-dose group. The PANSS in the 4th week after treatment was the opposite. Therefore, the amount of change of the average of the is larger in the middle-dose group and the high-dose group.
+
+`r tableNums(name = "table2",  display = "full")`
+
+  It can be seen from the figure below that at baseline, there was no significant difference in PANSS between different treatment groups, and the distribution of PANSS became scattered in the 4th week after treatment. Among them, the PANSS distribution of the group taking placebo and medium dose became more scattered in the 4th week after treatment; the group taking low dose and high dose was distributed among the four treatment groups in the 4th week after treatment more concentrated.
+
+![](sgpanel2.png)
+Figure 6: PANSS value for four groups in different time Boxplot
+
+  The box plot of the PANSS difference value of the different treatment groups by gender at the 4th week after treatment and the baseline can be seen from the figure below. The interquartile range of the PANSS change value of women taking placebo is more concentrated than that of men, but the total distance is higher; men’s are scattered, and men have lower changes than women on average; women who take low doses have more changes in PANSS than men; women who take the middle dose group have higher changes than men on average, and there are outliers in the changes in both groups. In the high-dose group, the variation of females was more dispersed than that of males.
+
+![](sgpanel3.png)
+Figure 7: Difference of PANSS value for four groups in different time Boxplot
+
+  From the figure below, we can know the amount of change in PANSS from baseline (time=0) to the fourth week after the test. It can be seen from the results measured at these two time points that the difference between the four groups of test groups is not too great, but the range of changes in the test groups with doses of 80 and 120 is larger than that of the other two groups.
+
+```{r, echo =F,message=FALSE}
+cts <- read.csv("D:/CT_109/HW4/data/CTSchizoDosingFindingCRDBalanceLong.csv")
+
+cts <- na.omit(cts)
+
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr) 
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  datac$se <- datac$sd / sqrt(datac$N)  
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  return(datac)
+}
+
+cts$dose <- as.factor(cts$dose)
+cts$y <- as.numeric(cts$y)
+
+summary <- summarySE(cts, measurevar="y", groupvars=c("dose","time"), na.rm=TRUE)
+pd <- position_dodge(0.1)
+
+plot <- ggplot(summary, aes(x=time, y=mean, colour=dose, group=dose)) + 
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=0.1, position=pd) +
+  geom_line(position=pd, aes(linetype=dose)) +
+  geom_point(position=pd, size=3, shape=21, fill="white") + 
+  xlab("time") +
+  ylab("PANSS") +
+  ggtitle("Time Plot") +                      
+  scale_y_continuous(breaks=0:20*4) +        
+  theme_bw() +
+  theme(legend.justification=c(1,0.9),
+        legend.position=c(1,0.45))             
+plot + ylim(80, 110)
+
+```
+
+Figure 8: Change of PANSS value in different time
+
+
+### Method
+
+#### ANOVA
+
+Hypothesis Testing:
+
+$$
+\begin{cases} H_0:{the \text{ } mean \text{ } is \text{ } equal \text{ } in \text{ } each \text{ } group}
+\\
+\\H_1:{not \text{ } H_0}\end{cases}
+$$
+  It can be seen from the table below that through the ANOVA test, there is no significant difference between the treatment group, gender, and the interaction direction of the two variables. Therefore, it can be inferred that there is no significant effect on the change value of PANSS between the groups. However, because of the p-value of the difference between the treatment groups is close to 0.05, the subsequent multiple comparison method will be analyzed for the treatment group.
+
+`r tableNums(name = "anova",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/anova.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+#### Scheffee 
+  It can be seen from the following table that through Scheffe method, it can be known that there is no significant difference between treatment groups, so it is concluded that there is no significant effect on the change value of PANSS between groups.
+  
+`r tableNums(name = "schef",  display = "full")`
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/schef.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+#### Bonferroni 
+
+  As more groups are tested, the actual probability of type I error will increase. To avoid type I error, the Bonferroni method in the multiple comparison method will be used. This method divides the initially set significance level by the total executed average number to find the new significance level.
+  It can be seen from the table below that through the Bonferroni method, it can be known that there is no significant difference between the treatment groups, so it is inferred that there is no significant effect on the change of PANSS value between the groups.
+
+`r tableNums(name = "bonfer",  display = "full")`
+
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/bonfer.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+
+
+
+#### model 
+
+  Observing the following table shows that the difference between dose and gender does not affect the change value of PANSS, so it can be inferred that the relationship is not linear. The residual figure of the model shows that there is no obvious trend in the residual error, so it can be inferred that there is no secondary relationship between the change value of PANSS, dose group and gender.
+
+`r tableNums(name = "model1",  display = "full")`
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/change.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+![](SGPlot.png)
+Figure 9: Model residual plot of variable, change
+
+  Observing the following table shows that there are significant differences in PANSS between baseline and treatment group in the 4th week after treatment, but there is no significant difference in gender and interaction. Observing the residual plot again, it can be found that there is no obvious trend, so it can be inferred that the first after treatment, the 4-week PANSS has a linear relationship with baseline and treatment group, rather than a quadratic relationship.
+  
+`r tableNums(name = "model2",  display = "full")`
+```{r, echo =F}
+discript <- read_excel("D:/CT_109/HW4/data/outcome.xlsx")
+kable(discript) %>%
+  kable_styling()
+```
+![](SGPlot1.png)
+Figure 10: The residual plot of variable, outcome
+
+
+#### Missing values affects the unbalanced number of samples in each group
+
+* Experimental study design
+
+  Internal validity is one of the factors that affect the experiment. It represents whether the possible sources of error can be effectively controlled in the research experiment. Unbalanced samples and the loss of patients may affect the internal validity and make the possible range of error get bigger. Among them, if the sample is unbalanced, it may cause the trial design to be interfered by other non-research factors. Therefore, in addition to the difference in the experimental factors of the study, other factors between the groups should maintain the same distribution to avoid that the results of the study will not be distorted. Disturbed by non-research factors.
+
+
+* Analysis
+
+  Imbalance in the number of samples can cause misleading results, which in turn can lead to biased results. An unbalanced number of samples can easily lead to false negative or false positive, which means type I error and type II error. In clinical trials, the harm caused by false negatives is sometimes irreversible, so type II error should be avoided. Occurs, so the data imbalance should be resolved.
+
+### Conclusion
+
+  According to the above statistical methods, different doses of drugs, gender, and the two interactions have no significant effects on the patients.
+
+
+## Appendix
+`r tableNums_b(name = "var",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctpw, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+
+```
+
+`r tableNums_b(name = "var2",  display = "full")`
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
+dfSummary(ctb, plain.ascii = FALSE, style = "grid", graph.magnif = 0.5, valid.col = FALSE, tmp.img.dir = "/tmp", varnumbers=FALSE)
+```
