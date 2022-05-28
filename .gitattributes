@@ -7,3 +7,5 @@ templates <- list(
   .gitignore = '
 .Rproj.user
 .Rhistory
+
+*.SAS linguist-detectable=true
